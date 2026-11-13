@@ -13,8 +13,8 @@ function getBotModule() {
 }
 
 module.exports = async (req, res) => {
-  // 1. GET Request: Render beautiful HTML Status Page for browsers
-  if (req.method === 'GET') {
+  // 1. GET / HEAD Request: Render beautiful HTML Status Page for browsers / uptime monitors
+  if (req.method === 'GET' || req.method === 'HEAD') {
     const isJsonRequested = req.headers.accept && req.headers.accept.includes('application/json');
 
     if (isJsonRequested) {
