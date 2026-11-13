@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "cleanUrls": true,
   "rewrites": [
     { "source": "/webhook", "destination": "/api/webhook" },
     { "source": "/set-webhook", "destination": "/api/set-webhook" }
