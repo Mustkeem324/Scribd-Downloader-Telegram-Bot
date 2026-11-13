@@ -13,8 +13,29 @@ function getBotModule() {
 }
 
 module.exports = async (req, res) => {
-  // 1. GET / HEAD Request: Render beautiful HTML Status Page for browsers / uptime monitors
+  // 1. GET / HEAD Request: Status page or JSON diagnosis
   if (req.method === 'GET' || req.method === 'HEAD') {
+    // Diagnosis endpoint: /api/webhook?debug=1
+    if (req.url && req.url.includes('debug=1')) {
+      let dbStatus = 'not tested';
+      try {
+        const { connectToDatabase } = getBotModule();
+        await connectToDatabase();
+        dbStatus = 'connected';
+      } catch (e) {
+        dbStatus = 'error: ' + e.message;
+      }
+      return res.status(200).json({
+        ok: true,
+        service: 'Scribd Telegram Bot Webhook',
+        apiKeyConfigured: Boolean(process.env.TELEGRAM_API_KEY),
+        mongoUriConfigured: Boolean(process.env.MONGODB_URI || process.env.MONGO_URI),
+        databaseStatus: dbStatus,
+        nodeVersion: process.version,
+        time: new Date().toISOString()
+      });
+    }
+
     const isJsonRequested = req.headers.accept && req.headers.accept.includes('application/json');
 
     if (isJsonRequested) {
@@ -35,7 +56,7 @@ module.exports = async (req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Webhook Status — Scribd Downloader Bot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -162,7 +183,7 @@ module.exports = async (req, res) => {
   // 2. POST Request: Handle Telegram Updates
   if (req.method === 'POST') {
     try {
-      const { bot, connectToDatabase } = getBotModule();
+      const { handleUpdate, connectToDatabase } = getBotModule();
       try {
         await connectToDatabase();
       } catch (dbErr) {
@@ -170,12 +191,13 @@ module.exports = async (req, res) => {
       }
 
       if (req.body && typeof req.body === 'object') {
-        await bot.processUpdate(req.body);
+        // Await update processing directly so Telegram API calls resolve before Lambda returns
+        await handleUpdate(req.body);
       }
       return res.status(200).send('OK');
     } catch (err) {
       console.error('Webhook processing error:', err.message);
-      // Always return 200 OK to Telegram so it doesn't storm retries
+      // Always acknowledge 200 OK to Telegram so it doesn't storm retries
       return res.status(200).send('OK');
     }
   }
