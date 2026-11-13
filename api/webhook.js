@@ -1,4 +1,16 @@
-const { bot, connectToDatabase } = require('../lib/bot');
+let botModule = null;
+
+function getBotModule() {
+  if (!botModule) {
+    try {
+      botModule = require('../lib/bot');
+    } catch (err) {
+      console.error('Failed to load bot module:', err);
+      throw err;
+    }
+  }
+  return botModule;
+}
 
 module.exports = async (req, res) => {
   // 1. GET Request: Render beautiful HTML Status Page for browsers
@@ -150,14 +162,20 @@ module.exports = async (req, res) => {
   // 2. POST Request: Handle Telegram Updates
   if (req.method === 'POST') {
     try {
-      await connectToDatabase();
+      const { bot, connectToDatabase } = getBotModule();
+      try {
+        await connectToDatabase();
+      } catch (dbErr) {
+        console.error('Database connection notice (webhook continuing):', dbErr.message);
+      }
+
       if (req.body && typeof req.body === 'object') {
         await bot.processUpdate(req.body);
       }
       return res.status(200).send('OK');
     } catch (err) {
-      console.error('Webhook error:', err.message);
-      // Always acknowledge 200 OK to Telegram to avoid infinite retry storms
+      console.error('Webhook processing error:', err.message);
+      // Always return 200 OK to Telegram so it doesn't storm retries
       return res.status(200).send('OK');
     }
   }
