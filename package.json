@@ -2,10 +2,10 @@
   "name": "scribd-telegram-bot",
   "version": "1.0.0",
   "description": "A Telegram bot to download Scribd documents, built with Node.js, MongoDB, and Telegram Bot API.",
-  "main": "api/webhook.js",
+  "main": "lib/main.js",
   "scripts": {
-    "start": "node api/webhook.js",
-    "dev": "nodemon api/webhook.js"
+    "start": "node lib/main.js",
+    "dev": "nodemon lib/main.js"
   },
   "keywords": [
     "telegram",
